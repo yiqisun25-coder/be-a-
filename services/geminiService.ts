@@ -21,7 +21,7 @@ async function askOpenRouter(prompt: string): Promise<string> {
       'Authorization': `Bearer ${OPENROUTER_KEY}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'http://localhost:3000',
-      'X-Title': '短视频助手',
+      'X-Title': 'Short Video Assistant',
     },
     body: JSON.stringify({
       model: OPENROUTER_MODEL,
