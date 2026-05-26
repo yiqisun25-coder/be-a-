@@ -9,16 +9,17 @@ import SchedulePanel from './components/SchedulePanel';
 import ScriptPanel   from './components/ScriptPanel';
 import ShootingPanel from './components/ShootingPanel';
 import PublishPanel  from './components/PublishPanel';
-import { activeProvider } from './services/geminiService';
+import { activeProvider, providerLabel } from './services/geminiService';
 import {
   Plus, ArrowLeft, Video, Trash2, Calendar, ChevronRight, Clapperboard, Cpu,
 } from 'lucide-react';
 
-const PROVIDER_BADGE: Record<ReturnType<typeof activeProvider>, { label: string; cls: string }> = {
-  deepseek:   { label: 'DeepSeek',   cls: 'text-blue-300   bg-blue-500/10   border-blue-500/30'   },
-  openrouter: { label: 'OpenRouter', cls: 'text-violet-300 bg-violet-500/10 border-violet-500/30' },
-  gemini:     { label: 'Gemini',     cls: 'text-sky-300    bg-sky-500/10    border-sky-500/30'    },
-  mock:       { label: '离线模式',    cls: 'text-slate-400  bg-slate-500/10  border-slate-500/30'  },
+const PROVIDER_CLS: Record<ReturnType<typeof activeProvider>, string> = {
+  custom:     'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+  deepseek:   'text-blue-300   bg-blue-500/10   border-blue-500/30',
+  openrouter: 'text-violet-300 bg-violet-500/10 border-violet-500/30',
+  gemini:     'text-sky-300    bg-sky-500/10    border-sky-500/30',
+  mock:       'text-slate-400  bg-slate-500/10  border-slate-500/30',
 };
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -136,15 +137,9 @@ export default function App() {
                 <Clapperboard size={20} className="text-violet-400" />
                 <span className="font-bold text-slate-100 text-lg tracking-tight">{APP_NAME}</span>
               </div>
-              {(() => {
-                const p = activeProvider();
-                const b = PROVIDER_BADGE[p];
-                return (
-                  <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium ${b.cls}`}>
-                    <Cpu size={10} /> {b.label}
-                  </span>
-                );
-              })()}
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border font-medium ${PROVIDER_CLS[activeProvider()]}`}>
+                <Cpu size={10} /> {providerLabel()}
+              </span>
             </div>
           )}
 

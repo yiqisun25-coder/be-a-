@@ -2,72 +2,62 @@ import { GoogleGenAI } from "@google/genai";
 import { Platform, TopicIdea, Script, ShootingGuide, PublishKit, ScriptLine } from "../types";
 
 // ── Provider detection ────────────────────────────────────────────────────────
-// Priority: DeepSeek → OpenRouter → Gemini → mock fallback
+// Priority: Custom → DeepSeek → OpenRouter → Gemini → mock
+const CUSTOM_BASE     = process.env.CUSTOM_API_BASE;
+const CUSTOM_KEY      = process.env.CUSTOM_API_KEY;
+const CUSTOM_MODEL    = process.env.CUSTOM_API_MODEL ?? 'moonshot-v1-8k';
 const DEEPSEEK_KEY    = process.env.DEEPSEEK_API_KEY;
 const OPENROUTER_KEY  = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL= process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini';
 const GEMINI_KEY      = process.env.GEMINI_API_KEY ?? process.env.API_KEY;
 
-export function activeProvider(): 'deepseek' | 'openrouter' | 'gemini' | 'mock' {
-  if (DEEPSEEK_KEY)   return 'deepseek';
-  if (OPENROUTER_KEY) return 'openrouter';
-  if (GEMINI_KEY)     return 'gemini';
+export type ProviderName = 'custom' | 'deepseek' | 'openrouter' | 'gemini' | 'mock';
+
+export function activeProvider(): ProviderName {
+  if (CUSTOM_BASE && CUSTOM_KEY) return 'custom';
+  if (DEEPSEEK_KEY)              return 'deepseek';
+  if (OPENROUTER_KEY)            return 'openrouter';
+  if (GEMINI_KEY)                return 'gemini';
   return 'mock';
 }
 
-// ── OpenRouter (OpenAI-compatible) ────────────────────────────────────────────
-async function askOpenRouter(prompt: string): Promise<string> {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENROUTER_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'http://localhost:3000',
-      'X-Title': 'Short Video Assistant',
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: '你是一个专业的短视频内容策划。请严格按照用户要求的 JSON 格式返回结果，不要包含任何 markdown 标记、代码块或额外解释，只输出纯 JSON。',
-        },
-        { role: 'user', content: prompt },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`OpenRouter ${res.status}: ${errText}`);
+// 显示名称（用于 UI badge）
+export function providerLabel(): string {
+  if (CUSTOM_BASE && CUSTOM_KEY) {
+    // 从 base URL 提取域名作为显示名，例如 api.moonshot.cn → Moonshot
+    try {
+      const host = new URL(CUSTOM_BASE).hostname; // e.g. api.moonshot.cn
+      const parts = host.split('.');
+      const name = parts.length >= 2 ? parts[parts.length - 2] : host;
+      return name.charAt(0).toUpperCase() + name.slice(1); // Moonshot
+    } catch {
+      return 'Custom';
+    }
   }
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('OpenRouter returned empty content');
-  // 兼容部分模型用 markdown 代码块包裹 JSON 的情况
-  return extractJSON(content);
+  if (DEEPSEEK_KEY)   return 'DeepSeek';
+  if (OPENROUTER_KEY) return 'OpenRouter';
+  if (GEMINI_KEY)     return 'Gemini';
+  return '离线模式';
 }
 
-// 从可能含 markdown 的字符串中提取 JSON
-function extractJSON(text: string): string {
-  // 去掉 ```json ... ``` 或 ``` ... ```
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (match) return match[1].trim();
-  // 尝试直接找第一个 { 或 [
-  const start = text.search(/[{[]/);
-  if (start !== -1) return text.slice(start);
-  return text;
-}
-
-// ── DeepSeek (OpenAI-compatible) ─────────────────────────────────────────────
-async function askDeepSeek(prompt: string): Promise<string> {
-  const res = await fetch('https://api.deepseek.com/chat/completions', {
+// ── 通用 OpenAI-compatible 调用 ───────────────────────────────────────────────
+async function askOpenAICompat(
+  baseUrl: string,
+  key: string,
+  model: string,
+  prompt: string,
+  extraHeaders: Record<string, string> = {},
+): Promise<string> {
+  const url = baseUrl.replace(/\/$/, '') + '/chat/completions';
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${DEEPSEEK_KEY}`,
+      'Authorization': `Bearer ${key}`,
       'Content-Type': 'application/json',
+      ...extraHeaders,
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model,
       messages: [
         {
           role: 'system',
@@ -75,17 +65,25 @@ async function askDeepSeek(prompt: string): Promise<string> {
         },
         { role: 'user', content: prompt },
       ],
-      response_format: { type: 'json_object' },
     }),
   });
-  if (!res.ok) throw new Error(`DeepSeek ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`${new URL(url).hostname} ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('DeepSeek returned empty content');
+  if (!content) throw new Error('API returned empty content');
   return extractJSON(content);
 }
 
-// ── Gemini ────────────────────────────────────────────────────────────────────
+// 从可能含 markdown 的字符串中提取 JSON
+function extractJSON(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (match) return match[1].trim();
+  const start = text.search(/[{[]/);
+  if (start !== -1) return text.slice(start);
+  return text;
+}
+
+// ── Gemini（原生 SDK）────────────────────────────────────────────────────────
 async function askGemini(prompt: string): Promise<string> {
   if (!GEMINI_KEY) throw new Error('NO_GEMINI_KEY');
   const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
@@ -100,11 +98,20 @@ async function askGemini(prompt: string): Promise<string> {
 
 // ── Unified ask() ─────────────────────────────────────────────────────────────
 async function ask(prompt: string): Promise<string> {
-  if (DEEPSEEK_KEY)   return askDeepSeek(prompt);
-  if (OPENROUTER_KEY) return askOpenRouter(prompt);
-  if (GEMINI_KEY)     return askGemini(prompt);
+  if (CUSTOM_BASE && CUSTOM_KEY)
+    return askOpenAICompat(CUSTOM_BASE, CUSTOM_KEY, CUSTOM_MODEL, prompt);
+  if (DEEPSEEK_KEY)
+    return askOpenAICompat('https://api.deepseek.com/v1', DEEPSEEK_KEY, 'deepseek-chat', prompt);
+  if (OPENROUTER_KEY)
+    return askOpenAICompat('https://openrouter.ai/api/v1', OPENROUTER_KEY, OPENROUTER_MODEL, prompt, {
+      'HTTP-Referer': 'http://localhost:3000',
+      'X-Title': 'Short Video Assistant',
+    });
+  if (GEMINI_KEY)
+    return askGemini(prompt);
   throw new Error('NO_KEY');
 }
+
 
 // ── 1. 选题 ───────────────────────────────────────────────────────────────
 export async function genTopics(niche: string, platform: Platform): Promise<TopicIdea[]> {
