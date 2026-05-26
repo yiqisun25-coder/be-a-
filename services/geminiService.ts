@@ -25,15 +25,35 @@ async function askOpenRouter(prompt: string): Promise<string> {
     },
     body: JSON.stringify({
       model: OPENROUTER_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个专业的短视频内容策划。请严格按照用户要求的 JSON 格式返回结果，不要包含任何 markdown 标记、代码块或额外解释，只输出纯 JSON。',
+        },
+        { role: 'user', content: prompt },
+      ],
     }),
   });
-  if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`OpenRouter ${res.status}: ${errText}`);
+  }
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error('OpenRouter returned empty content');
-  return content;
+  // 兼容部分模型用 markdown 代码块包裹 JSON 的情况
+  return extractJSON(content);
+}
+
+// 从可能含 markdown 的字符串中提取 JSON
+function extractJSON(text: string): string {
+  // 去掉 ```json ... ``` 或 ``` ... ```
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (match) return match[1].trim();
+  // 尝试直接找第一个 { 或 [
+  const start = text.search(/[{[]/);
+  if (start !== -1) return text.slice(start);
+  return text;
 }
 
 // ── Gemini ────────────────────────────────────────────────────────────────────

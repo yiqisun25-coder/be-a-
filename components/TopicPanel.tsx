@@ -26,8 +26,10 @@ export default function TopicPanel({ project, onChange }: Props) {
     try {
       const topics = await genTopics(niche.trim(), platform);
       onChange({ topics, niche: niche.trim(), platform, topic: undefined });
-    } catch {
-      // fallback
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErr(`AI 调用失败：${msg}`);
+      // 仅在真正无 key 时才用模板兜底
       onChange({ topics: mockTopics(niche.trim()), niche: niche.trim(), platform, topic: undefined });
     } finally {
       setLoading(false);
