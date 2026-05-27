@@ -112,6 +112,7 @@ export async function genTopics(shop: ShopInfo, platform: Platform): Promise<Top
     '大众点评':    '客观评价，打分感，适合信息量大的测评风格',
     '视频号':      '温情真实，适合中年用户，朋友圈裂变属性',
     '快手':        '接地气，下沉市场，性价比和真实感优先',
+    'TikTok':      '英文内容，竖屏15-60s，trending sounds，overseas Chinese or local audience，hook in first 2s，no watermark',
   };
 
   const raw = await ask(`平台：${platform}（${platformHints[platform]}）
@@ -150,7 +151,8 @@ export async function genScript(topic: TopicIdea, shop: ShopInfo, platform: Plat
   };
   const angleKey = Object.keys(angleGuide).find(k => topic.angle.includes(k)) ?? '种草';
 
-  const raw = await ask(`你是一个真实的探店博主，正在给${platform}拍一条${duration}的探店视频。
+  const isTikTok = platform === 'TikTok';
+  const raw = await ask(`你是一个真实的探店博主，正在给${platform}拍一条${duration}的探店视频。${isTikTok ? '\n注意：TikTok 受众为海外用户，口播文案请用英文，画面说明可用中文。标题和字幕用英文。' : ''}
 
 店铺信息：
 ${shopDesc(shop)}
@@ -231,6 +233,7 @@ export async function genPublishKit(topic: TopicIdea, shop: ShopInfo, platform: 
     '大众点评':    '10:00-12:00 / 14:00-16:00',
     '视频号':      '08:00-10:00 / 20:00-22:00',
     '快手':        '12:00-14:00 / 20:00-22:00',
+    'TikTok':      '19:00-21:00 local time / Tue-Thu peak',
   };
 
   const raw = await ask(`${platform}探店发布配置。
@@ -314,6 +317,7 @@ export function mockPublishKit(topic: TopicIdea, shop: ShopInfo, platform: Platf
   const bestTimes: Record<Platform, string> = {
     '抖音本地生活':'11:00-13:00 / 17:00-19:00', '小红书':'07:00-09:00 / 21:00-23:00',
     '大众点评':'10:00-12:00', '视频号':'08:00-10:00 / 20:00-22:00', '快手':'12:00-14:00 / 20:00-22:00',
+    'TikTok':'19:00-21:00 local time / Tue-Thu peak',
   };
   return {
     title: topic.title,

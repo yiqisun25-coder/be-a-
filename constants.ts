@@ -2,10 +2,10 @@ import { Platform, ShopType, VideoStatus, WorkflowStep } from './types';
 
 export const APP_NAME = '探店助手';
 
-export const PLATFORMS: Platform[] = ['抖音本地生活', '小红书', '大众点评', '视频号', '快手'];
+export const PLATFORMS: Platform[] = ['抖音本地生活', '小红书', '大众点评', '视频号', '快手', 'TikTok'];
 
 export const PLATFORM_EMOJI: Record<Platform, string> = {
-  '抖音本地生活': '🎵', '小红书': '📕', '大众点评': '🍴', '视频号': '💬', '快手': '⚡',
+  '抖音本地生活': '🎵', '小红书': '📕', '大众点评': '🍴', '视频号': '💬', '快手': '⚡', 'TikTok': '🌐',
 };
 
 export const SHOP_TYPES: ShopType[] = ['餐饮', '咖啡/饮品', '快印/文印', '美发/美甲', '零售', '健身/运动', '其他'];
