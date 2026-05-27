@@ -97,16 +97,21 @@ export async function genTopics(shop: ShopInfo, platform: Platform): Promise<Top
 
 ${shopDesc(shop)}
 
-为这家店生成4个差异化探店选题。角度覆盖：测评型、种草型、探秘型、性价比型。
+为这家店想4个差异化的探店选题，每个角度不一样：测评型、种草型、探秘型、性价比型。
+
+选题要求：
+- 标题要有点击欲望，但不能标题党，要和店铺实际情况相关
+- 钩子是前3秒的第一句话，要让人停下来看，可以是疑问、反差、悬念、直接说结论
+- 每个选题的差异化要真实，不是换个说法的同一件事
 
 返回JSON数组：
 [
   {
     "id": "1",
-    "title": "视频标题（含emoji，≤20字，高点击率）",
-    "hook": "开场钩子（前3秒说的话，≤25字，制造悬念或冲击）",
-    "angle": "切入角度（测评/种草/探秘/性价比，一句话说清差异化）",
-    "audience": "目标人群（≤15字）",
+    "title": "视频标题（含emoji，≤20字）",
+    "hook": "开场第一句话（≤25字，直接可说，有记忆点）",
+    "angle": "这条视频的核心差异化（一句话，说清楚和其他探店视频不一样在哪）",
+    "audience": "最可能被这条视频吸引的人（≤15字）",
     "potential": "预估播放量级（如：5万+）"
   }
 ]`);
@@ -116,15 +121,35 @@ ${shopDesc(shop)}
 
 // ── 3. 脚本 ───────────────────────────────────────────────────────────────────
 export async function genScript(topic: TopicIdea, shop: ShopInfo, platform: Platform, duration: string): Promise<Script> {
-  const raw = await ask(`平台：${platform}，目标时长：${duration}
+  const angleGuide: Record<string, string> = {
+    '种草': '像朋友推荐，有情绪和氛围感，重点在"为什么我爱这家"，不要罗列信息',
+    '测评': '有态度的真实测评，给具体分数/对比，说出优缺点，观众信任你的判断',
+    '探秘': '层层揭秘节奏，每段都留悬念，"你们绝对想不到…"、"等等这个…"',
+    '性价比': '帮粉丝算账，具体报价、份量、对比，结论要斩钉截铁',
+  };
+  const angleKey = Object.keys(angleGuide).find(k => topic.angle.includes(k)) ?? '种草';
 
+  const raw = await ask(`你是一个真实的探店博主，正在给${platform}拍一条${duration}的探店视频。
+
+店铺信息：
 ${shopDesc(shop)}
 
-选题：${topic.title}
-钩子：${topic.hook}
-角度：${topic.angle}
+这条视频的方向：
+标题：${topic.title}
+开场钩子：${topic.hook}
+内容角度：${topic.angle}
 
-生成完整探店分镜脚本。结构必须包含：到店门头→店内环境→产品/服务体验→价格性价比→总结评价→引导打卡。
+写作风格要求（${angleKey}型）：${angleGuide[angleKey]}
+
+口播文案要求：
+- 像真人说话，有口头语，不要念稿子感
+- 有自己的观点和情绪（"真的绝了"、"说实话有点失望"、"但这个我没想到"）
+- 具体，用细节说话，不用"味道不错"这种废话
+- 适合${platform}用户的语气
+
+画面说明要求：
+- 每个镜头说清楚拍什么、怎么拍（角度、运动方式）
+- 具体到能直接执行，比如"手持稳定器跟着走进去"不是"拍环境"
 
 返回JSON：
 {
@@ -133,14 +158,14 @@ ${shopDesc(shop)}
     {
       "ts": "0:00-0:05",
       "type": "hook",
-      "copy": "口播文案（口语化，直接可读）",
-      "visual": "画面/动作说明（具体可执行）"
+      "copy": "口播（直接可读的文字）",
+      "visual": "画面（具体可操作）"
     }
   ]
 }
 
-type枚举：hook / arrival / environment / product / price / verdict / cta
-共6-9条，覆盖完整探店叙事。文案接地气，有真实探店感。`);
+type只能用：hook / arrival / environment / product / price / verdict / cta
+共7-9条，时间戳连续不断层。不要所有段落语气一样，要有起伏。`);
 
   return JSON.parse(raw) as Script;
 }
