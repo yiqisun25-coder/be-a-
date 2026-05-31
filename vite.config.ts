@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
+      base: '/be-a-/',
       plugins: [react()],
       define: {
         'process.env.CUSTOM_API_BASE':   JSON.stringify(env.CUSTOM_API_BASE),
