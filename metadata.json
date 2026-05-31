@@ -1,5 +1,5 @@
 {
-  "name": "LightPath (轻盈之路)",
-  "description": "一个优雅的体重记录与愿景板应用。通过直观的图表追踪您的进度，利用 AI 分析您的趋势，并通过愿景板时刻激励自己。",
+  "name": "探店助手",
+  "description": "本地餐饮/商铺短视频运营助手，管理客户档案、AI 生成选题和脚本、追踪拍摄发布进度。",
   "requestFramePermissions": []
 }
