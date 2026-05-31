@@ -217,6 +217,7 @@ export default function App() {
               clients={clients}
               projects={projects}
               onOpenClient={id => goToClient(id)}
+              onOpenProject={openProject}
               onCreateClient={createClient}
               onUpdateClient={updateClient}
               onDeleteClient={deleteClient}

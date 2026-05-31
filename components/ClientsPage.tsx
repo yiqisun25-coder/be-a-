@@ -198,19 +198,36 @@ const ClientCard: React.FC<{
   );
 };
 
+// ── Orphan Project Row ────────────────────────────────────────────────────────
+const OrphanRow: React.FC<{ project: Project; onOpen: () => void }> = ({ project, onOpen }) => (
+  <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 hover:border-slate-600 rounded-xl px-4 py-3 cursor-pointer transition-all" onClick={onOpen}>
+    <span className="text-lg">{SHOP_TYPE_EMOJI[project.shopInfo.type]}</span>
+    <div className="flex-1 min-w-0">
+      <div className="text-sm font-medium text-slate-200 truncate">
+        {project.topic?.title ?? <span className="text-slate-500 italic">未选选题</span>}
+      </div>
+      <div className="text-xs text-slate-500 mt-0.5">{project.shopInfo.name} · {PLATFORM_EMOJI[project.platform]} {project.platform}</div>
+    </div>
+    <ChevronRight size={14} className="text-slate-600 flex-shrink-0" />
+  </div>
+);
+
 // ── Main ClientsPage ──────────────────────────────────────────────────────────
 interface PageProps {
   clients: Client[];
   projects: Project[];
   onOpenClient: (id: string) => void;
+  onOpenProject: (id: string) => void;
   onCreateClient: (data: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onUpdateClient: (id: string, data: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onDeleteClient: (id: string) => void;
 }
 
-export default function ClientsPage({ clients, projects, onOpenClient, onCreateClient, onUpdateClient, onDeleteClient }: PageProps) {
+export default function ClientsPage({ clients, projects, onOpenClient, onOpenProject, onCreateClient, onUpdateClient, onDeleteClient }: PageProps) {
   const [mode,       setMode]       = useState<'list' | 'new' | 'edit'>('list');
   const [editTarget, setEditTarget] = useState<Client | null>(null);
+
+  const orphans = projects.filter(p => !p.clientId);
 
   function startEdit(c: Client) { setEditTarget(c); setMode('edit'); }
 
@@ -232,7 +249,7 @@ export default function ClientsPage({ clients, projects, onOpenClient, onCreateC
 
   return (
     <div className="space-y-5">
-      {clients.length === 0 ? (
+      {clients.length === 0 && orphans.length === 0 ? (
         <div className="text-center py-24 space-y-4">
           <div className="text-6xl">🏪</div>
           <p className="text-slate-300 font-semibold">还没有客户档案</p>
@@ -261,15 +278,33 @@ export default function ClientsPage({ clients, projects, onOpenClient, onCreateC
           </div>
 
           {/* Client cards */}
-          <div className="space-y-3">
-            {clients.map(c => (
-              <ClientCard key={c.id} client={c}
-                projects={projects.filter(p => p.clientId === c.id)}
-                onOpen={() => onOpenClient(c.id)}
-                onEdit={() => startEdit(c)}
-                onDelete={() => handleDelete(c.id)} />
-            ))}
-          </div>
+          {clients.length > 0 && (
+            <div className="space-y-3">
+              {clients.map(c => (
+                <ClientCard key={c.id} client={c}
+                  projects={projects.filter(p => p.clientId === c.id)}
+                  onOpen={() => onOpenClient(c.id)}
+                  onEdit={() => startEdit(c)}
+                  onDelete={() => handleDelete(c.id)} />
+              ))}
+            </div>
+          )}
+
+          {/* New client button */}
+          <button onClick={() => setMode('new')}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 border-dashed rounded-xl text-slate-400 hover:text-slate-200 text-sm font-medium transition-all">
+            <Plus size={14} /> 新建客户档案
+          </button>
+
+          {/* Orphaned projects */}
+          {orphans.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">未归档项目 · {orphans.length} 个</div>
+              {orphans.map(p => (
+                <OrphanRow key={p.id} project={p} onOpen={() => onOpenProject(p.id)} />
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
