@@ -31,6 +31,8 @@ export default function SettingsModal({ onClose }: Props) {
     setModel(p.model);
   }
 
+  const matchedPreset = PRESETS.find(p => p.base === base);
+
   function handleSave() {
     if (!base || !key) return;
     saveApiSettings(base, key, model);
@@ -112,9 +114,23 @@ export default function SettingsModal({ onClose }: Props) {
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">模型名称</label>
             <input
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors font-mono"
+              className={`w-full bg-slate-800 border rounded-xl px-3 py-2.5 text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors font-mono ${
+                matchedPreset && model !== matchedPreset.model ? 'border-amber-600/60' : 'border-slate-700'
+              }`}
               placeholder="Qwen/Qwen2.5-7B-Instruct"
               value={model} onChange={e => setModel(e.target.value)} />
+            {matchedPreset && model !== matchedPreset.model && (
+              <p className="text-xs text-amber-500 mt-1">
+                ⚠️ {matchedPreset.label.replace(' ⚡','')} 推荐模型：
+                <button onClick={() => setModel(matchedPreset.model)} className="underline ml-1 hover:text-amber-300">
+                  {matchedPreset.model}
+                </button>
+                （点击自动填入）
+              </p>
+            )}
+            {matchedPreset && model === matchedPreset.model && (
+              <p className="text-xs text-slate-600 mt-1">✓ 已匹配 {matchedPreset.label.replace(' ⚡','')} 推荐模型</p>
+            )}
           </div>
 
           {/* Buttons */}
@@ -128,7 +144,7 @@ export default function SettingsModal({ onClose }: Props) {
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 saved ? 'bg-emerald-600 text-white' : (!base || !key) ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700' : 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/40'
               }`}>
-              {saved ? <><Check size={14} /> 已保存，重新加载…</> : <><Save size={14} /> 保存并应用</>}
+              {saved ? <><Check size={14} /> 已保存，重新加载…</> : <><Save size={14} /> 保存并应用</> }
             </button>
           </div>
 
